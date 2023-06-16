@@ -5,10 +5,15 @@ import math
 pygame.display.set_caption('Jogo da velha')
 
 # cores em RGB
-FUNDO = (58, 57, 58)
+FUNDO = (64, 64, 64)
 COR_DA_LINHA = (215, 216, 215)
 COR_X = (233, 80, 79)
 COR_O = (53, 148, 159)
+BUTTON_COLOR = (128, 128, 128)
+BUTTON_TEXT_COLOR = (255, 255, 255)
+BUTTON_LIGHT_BORDER = (192, 192, 192)  # cinza claro
+BUTTON_DARK_BORDER = (48, 48, 48)  # cinza escuro
+LINE_BORDER = 2
 
 # constantes
 TELA_X = 1000
@@ -22,6 +27,8 @@ LINHA_X = LINHA
 QUADRADO = TABULEIRO//3
 AJUSTE_X = (TELA_X - TABULEIRO)//2
 AJUSTE_Y = (TELA_Y - TABULEIRO)//2
+BUTTON_X = 240
+BUTTON_Y = 60
 
 # relógio
 clock = pygame.time.Clock()
@@ -36,7 +43,6 @@ tela.fill(FUNDO)
 
 # tabuleiro
 tab = numpy.zeros((3, 3))
-
 
 # funções
 
@@ -139,15 +145,39 @@ def desenha_vencedor_asc_diagonal(round):
                          (AJUSTE_X + TABULEIRO - ESPACO // 2, AJUSTE_Y + ESPACO // 2), LINHA)
 
 
-def restart():
-    pass
+def restart_button(position, clicked):
+    pygame.draw.rect(tela, BUTTON_COLOR, (380, 30, BUTTON_X, BUTTON_Y))
 
+    if not clicked:
+        pygame.draw.line(tela, BUTTON_LIGHT_BORDER, position.topleft, position.topright, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_LIGHT_BORDER, position.topleft, position.bottomleft, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_DARK_BORDER, position.bottomleft, position.bottomright, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_DARK_BORDER, position.topright, position.bottomright, LINE_BORDER)
+    else:
+        pygame.draw.line(tela, BUTTON_DARK_BORDER, position.topleft, position.topright, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_DARK_BORDER, position.topleft, position.bottomleft, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_LIGHT_BORDER, position.bottomleft, position.bottomright, LINE_BORDER)
+        pygame.draw.line(tela, BUTTON_LIGHT_BORDER, position.topright, position.bottomright, LINE_BORDER)
+
+    text = fonte.render('Restart game', 1, BUTTON_TEXT_COLOR)
+    tela.blit(text, (425, 40))
+
+def restart_game():
+    global game_over
+    global partida
+    tab = numpy.zeros((3, 3))
+    game_over = False
+    partida = 1
+    pygame.draw.rect(tela, FUNDO, (380, 30, BUTTON_X + LINE_BORDER, BUTTON_Y + LINE_BORDER))
+    return tab, game_over, partida
 
 # mainloop
 pygame.init()
 
 partida = 1
 game_over = False
+restart_button_rect = pygame.Rect(380, 30, BUTTON_X, BUTTON_Y)
+posicao_botao = pygame.Rect(380, 30, BUTTON_X, BUTTON_Y)
 
 while True:
     for event in pygame.event.get():
@@ -155,27 +185,34 @@ while True:
             pygame.quit()
             quit()
 
-    if not game_over:
 
-        clock.tick(60)
-        # mouse
-        mouseX, mouseY = pygame.mouse.get_pos()
-        click = pygame.mouse.get_pressed()
+    clock.tick(60)
+    # mouse
+    mouseX, mouseY = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+
+    if not game_over:
 
         # converte posicao x, y para index
         x = (math.ceil((mouseX - AJUSTE_X) / QUADRADO) - 1)
         y = (math.ceil((mouseY - AJUSTE_Y) / QUADRADO) - 1)
 
-        if not confere_vencedor(partida) and partida <= 10:
+        if not confere_vencedor(partida) and partida < 10:
             tabuleiro_hover(partida)
             if 0 <= x < 3 and 0 <= y < 3:
                 if click[0] and tab[x][y] == 0:
                     tab[x][y] = jogada(partida)
                     partida += 1
-                    print(f'{partida}')
                 desenha_simbolo(x, y)
             linhas_do_jogo()
         else:
             game_over = True
+            clicked_button = False
+            restart_button(posicao_botao, click[0])
+
+    else:
+        if click[0] and restart_button_rect.collidepoint(mouseX, mouseY):
+            tab, game_over, partida = restart_game()
+            clicked_button = True
 
     pygame.display.update()
